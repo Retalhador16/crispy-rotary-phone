@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Whats</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #111b21;
+      color: white;
+    }
+
+    header {
+      background: #075e54;
+      padding: 15px;
+      font-size: 22px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    #chat {
+      height: calc(100vh - 130px);
+      overflow-y: auto;
+      padding: 15px;
+    }
+
+    .msg {
+      background: #202c33;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 10px;
+      max-width: 75%;
+    }
+
+    .nome {
+      color: #25d366;
+      font-weight: bold;
+    }
+
+    .hora {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 5px;
+    }
+
+    footer {
+      display: flex;
+      padding: 10px;
+      background: #202c33;
+      gap: 8px;
+    }
+
+    input {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    #nome {
+      width: 100px;
+    }
+
+    #texto {
+      flex: 1;
+    }
+
+    button {
+      background: #25d366;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<header>Mini Whats</header>
+
+<div id="chat"></div>
+
+<footer>
+  <input id="nome" placeholder="Nome">
+  <input id="texto" placeholder="Digite sua mensagem">
+  <button onclick="enviar()">Enviar</button>
+</footer>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+  apiKey: "AIzaSyDGzcFqPl11TWMo1G1UvucLV0yu4Lqo5mA",
+  authDomain: "resolute-grin-299416.firebaseapp.com",
+  databaseURL: "https://resolute-grin-299416-default-rtdb.firebaseio.com",
+  projectId: "resolute-grin-299416",
+  storageBucket: "resolute-grin-299416.firebasestorage.app",
+  messagingSenderId: "940287622486",
+  appId: "1:940287622486:web:f5595d9ec35f6acc91aaf7",
+  measurementId: "G-X03NJ6LQ3Y"
+};
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const mensagensRef = ref(db, "mensagens");
+
+  const chat = document.getElementById("chat");
+  const nomeInput = document.getElementById("nome");
+  const textoInput = document.getElementById("texto");
+
+  window.enviar = function () {
+    const nome = nomeInput.value.trim() || "Anônimo";
+    const texto = textoInput.value.trim();
+
+    if (texto === "") return;
+
+    push(mensagensRef, {
+      nome: nome,
+      texto: texto,
+      hora: serverTimestamp()
+    });
+
+    textoInput.value = "";
+  };
+
+  textoInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+      enviar();
+    }
+  });
+
+  onChildAdded(mensagensRef, function(snapshot) {
+    const msg = snapshot.val();
+
+    const data = msg.hora ? new Date(msg.hora) : new Date();
+    const horaFormatada = data.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = `
+      <div class="nome">${msg.nome}</div>
+      <div>${msg.texto}</div>
+      <div class="hora">${horaFormatada}</div>
+    `;
+
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  });
+</script>
+
+</body>
+</html>
