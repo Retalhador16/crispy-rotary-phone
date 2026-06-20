@@ -90,19 +90,26 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-  import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+  import {
+    getDatabase,
+    ref,
+    push,
+    onChildAdded,
+    remove,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
-  apiKey: "AIzaSyDGzcFqPl11TWMo1G1UvucLV0yu4Lqo5mA",
-  authDomain: "resolute-grin-299416.firebaseapp.com",
-  databaseURL: "https://resolute-grin-299416-default-rtdb.firebaseio.com",
-  projectId: "resolute-grin-299416",
-  storageBucket: "resolute-grin-299416.firebasestorage.app",
-  messagingSenderId: "940287622486",
-  appId: "1:940287622486:web:f5595d9ec35f6acc91aaf7",
-  measurementId: "G-X03NJ6LQ3Y"
-};
+    apiKey: "AIzaSyDGzcFqPl11TWMo1G1UvucLV0yu4Lqo5mA",
+    authDomain: "resolute-grin-299416.firebaseapp.com",
+    databaseURL: "https://resolute-grin-299416-default-rtdb.firebaseio.com",
+    projectId: "resolute-grin-299416",
+    storageBucket: "resolute-grin-299416.firebasestorage.app",
+    messagingSenderId: "940287622486",
+    appId: "1:940287622486:web:f5595d9ec35f6acc91aaf7"
+  };
+
+  const SENHA_ADMIN = "1234"; // troque essa senha
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
@@ -112,6 +119,32 @@
   const nomeInput = document.getElementById("nome");
   const textoInput = document.getElementById("texto");
 
+  let admin = false;
+  let ipUsuario = "não detectado";
+
+  async function pegarIP() {
+    try {
+      const r = await fetch("https://api.ipify.org?format=json");
+      const d = await r.json();
+      ipUsuario = d.ip;
+    } catch {
+      ipUsuario = "erro ao detectar";
+    }
+  }
+
+  pegarIP();
+
+  window.entrarAdmin = function () {
+    const senha = prompt("Senha de admin:");
+    if (senha === SENHA_ADMIN) {
+      admin = true;
+      alert("Modo admin ativado!");
+      location.reload();
+    } else {
+      alert("Senha incorreta.");
+    }
+  };
+
   window.enviar = function () {
     const nome = nomeInput.value.trim() || "Anônimo";
     const texto = textoInput.value.trim();
@@ -119,22 +152,30 @@
     if (texto === "") return;
 
     push(mensagensRef, {
-      nome: nome,
-      texto: texto,
+      nome,
+      texto,
+      ip: ipUsuario,
       hora: serverTimestamp()
     });
 
     textoInput.value = "";
   };
 
-  textoInput.addEventListener("keydown", function(e) {
-    if (e.key === "Enter") {
-      enviar();
+  window.apagarMensagem = function (id) {
+    if (!admin) return;
+    if (confirm("Apagar esta mensagem?")) {
+      remove(ref(db, "mensagens/" + id));
+      location.reload();
     }
+  };
+
+  textoInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") enviar();
   });
 
   onChildAdded(mensagensRef, function(snapshot) {
     const msg = snapshot.val();
+    const id = snapshot.key;
 
     const data = msg.hora ? new Date(msg.hora) : new Date();
     const horaFormatada = data.toLocaleTimeString("pt-BR", {
@@ -144,16 +185,16 @@
 
     const div = document.createElement("div");
     div.className = "msg";
+
     div.innerHTML = `
       <div class="nome">${msg.nome}</div>
       <div>${msg.texto}</div>
       <div class="hora">${horaFormatada}</div>
+      ${admin ? `<div class="hora">IP: ${msg.ip || "não salvo"}</div>` : ""}
+      ${admin ? `<button onclick="apagarMensagem('${id}')">Apagar</button>` : ""}
     `;
 
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
   });
 </script>
-
-</body>
-</html>
